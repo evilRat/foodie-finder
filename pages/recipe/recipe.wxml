@@ -1,0 +1,54 @@
+<view class="container">
+  <view class="header">
+    <text class="title">{{foodName}}菜谱</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">
+    <loading />
+    <text>正在生成菜谱...</text>
+  </view>
+
+  <view wx:else class="recipe-content">
+    <view class="recipe-card">
+      <view class="recipe-info">
+        <view class="info-item">
+          <text class="info-label">烹饪时间:</text>
+          <text class="info-value">{{recipe.cookingTime}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">难度:</text>
+          <text class="info-value">{{recipe.difficulty}}</text>
+        </view>
+      </view>
+
+      <view class="section">
+        <text class="section-title">食材清单</text>
+        <view class="ingredients-list">
+          <view class="ingredient-item" wx:for="{{recipe.ingredients}}" wx:key="index">
+            <text class="ingredient-name">{{item.name}}</text>
+            <text class="ingredient-amount">{{item.amount}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <text class="section-title">制作步骤</text>
+        <view class="steps-list">
+          <view class="step-item" wx:for="{{recipe.steps}}" wx:key="index">
+            <text class="step-number">{{index + 1}}.</text>
+            <text class="step-description">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section" wx:if="{{recipe.tips}}">
+        <text class="section-title">小贴士</text>
+        <text class="tips-content">{{recipe.tips}}</text>
+      </view>
+    </view>
+
+    <view class="actions">
+      <button class="action-button" bindtap="searchAgain">重新搜索</button>
+    </view>
+  </view>
+</view>
