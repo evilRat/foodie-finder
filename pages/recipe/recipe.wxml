@@ -1,54 +1,329 @@
 <view class="container">
-  <view class="header">
-    <text class="title">{{foodName}}菜谱</text>
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-back" bindtap="goHome">
+      <text class="nav-back-icon">‹</text>
+      <text class="nav-back-text">返回首页</text>
+    </view>
+    <text class="nav-title">{{recipe.name || foodName}}</text>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">
-    <loading />
-    <text>正在生成菜谱...</text>
+  <!-- 加载状态 - 需求6.1: 显示加载状态指示器, 需求6.4: 显示进度提示文字 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-content">
+      <!-- 主要加载动画 -->
+      <view class="loading-animation">
+        <view class="loading-spinner"></view>
+        <view class="loading-dots">
+          <view class="dot dot1"></view>
+          <view class="dot dot2"></view>
+          <view class="dot dot3"></view>
+        </view>
+      </view>
+      
+      <!-- 进度条 - 需求6.1: 加载状态指示器 -->
+      <view class="progress-container">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{loadingProgress}}%"></view>
+        </view>
+        <text class="progress-text">{{loadingProgress}}%</text>
+      </view>
+      
+      <!-- 加载信息 - 需求6.4: 显示进度提示文字 -->
+      <view class="loading-info">
+        <text class="loading-text">{{loadingMessage}}</text>
+        <text class="loading-tip">AI正在为您精心制作专业菜谱</text>
+        <text class="loading-stage">当前阶段: {{loadingStage}}</text>
+        <text class="loading-food" wx:if="{{foodName}}">正在生成: {{foodName}}</text>
+      </view>
+      
+      <!-- 加载阶段指示器 - 需求6.4: 在生成过程中显示进度提示 -->
+      <view class="stage-indicators">
+        <view class="stage-item {{loadingStage === 'analyzing' ? 'active' : loadingProgress > 15 ? 'completed' : ''}}">
+          <view class="stage-icon">🔍</view>
+          <text class="stage-label">分析特征</text>
+        </view>
+        <view class="stage-item {{loadingStage === 'searching' ? 'active' : loadingProgress > 30 ? 'completed' : ''}}">
+          <view class="stage-icon">📚</view>
+          <text class="stage-label">查找做法</text>
+        </view>
+        <view class="stage-item {{loadingStage === 'generating' ? 'active' : loadingProgress > 50 ? 'completed' : ''}}">
+          <view class="stage-icon">👨‍🍳</view>
+          <text class="stage-label">生成菜谱</text>
+        </view>
+        <view class="stage-item {{loadingStage === 'optimizing' ? 'active' : loadingProgress > 70 ? 'completed' : ''}}">
+          <view class="stage-icon">⚡</view>
+          <text class="stage-label">优化步骤</text>
+        </view>
+        <view class="stage-item {{loadingStage === 'nutrition' ? 'active' : loadingProgress > 85 ? 'completed' : ''}}">
+          <view class="stage-icon">🍎</view>
+          <text class="stage-label">营养信息</text>
+        </view>
+      </view>
+      
+      <!-- 数据来源指示 -->
+      <view class="source-indicator" wx:if="{{source}}">
+        <text class="source-text">数据来源: {{source === 'search' ? '文字搜索' : source === 'image' ? '图片识别' : source === 'cache' ? '缓存数据' : '重新生成'}}</text>
+      </view>
+    </view>
   </view>
 
+  <!-- 错误状态 - 需求6.2: 显示错误提示信息, 需求6.3: 提供重试功能 -->
+  <view wx:elif="{{error}}" class="error-container">
+    <view class="error-content">
+      <view class="error-animation">
+        <view class="error-icon">⚠️</view>
+        <view class="error-waves">
+          <view class="wave wave1"></view>
+          <view class="wave wave2"></view>
+          <view class="wave wave3"></view>
+        </view>
+      </view>
+      
+      <!-- 错误信息 - 需求6.2: 显示错误提示信息 -->
+      <view class="error-info">
+        <text class="error-title">生成失败</text>
+        <text class="error-message">{{error}}</text>
+        <text class="error-tip">请检查网络连接或稍后重试</text>
+        <text class="error-food" wx:if="{{foodName}}">菜品: {{foodName}}</text>
+      </view>
+      
+      <!-- 错误操作按钮 - 需求6.3: 提供重试功能 -->
+      <view class="error-actions">
+        <button class="action-button retry-button" bindtap="retryGenerate" wx:if="{{retryCount < maxRetries}}">
+          <text class="button-icon">🔄</text>
+          <text class="button-text">重新生成 ({{maxRetries - retryCount}}次机会)</text>
+        </button>
+        <button class="action-button search-button" bindtap="searchAgain">
+          <text class="button-icon">🔍</text>
+          <text class="button-text">重新搜索</text>
+        </button>
+        <button class="action-button back-button" bindtap="goHome">
+          <text class="button-icon">🏠</text>
+          <text class="button-text">返回首页</text>
+        </button>
+      </view>
+      
+      <!-- 重试信息和错误详情 -->
+      <view class="error-details">
+        <view class="retry-info" wx:if="{{retryCount > 0}}">
+          <text class="retry-count">已重试 {{retryCount}} 次</text>
+        </view>
+        <view class="error-meta" wx:if="{{lastError}}">
+          <text class="error-code">错误代码: {{lastError.code}}</text>
+          <text class="error-time">发生时间: {{lastError.timestamp}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 菜谱内容 -->
   <view wx:else class="recipe-content">
-    <view class="recipe-card">
-      <view class="recipe-info">
-        <view class="info-item">
-          <text class="info-label">烹饪时间:</text>
-          <text class="info-value">{{recipe.cookingTime}}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">难度:</text>
-          <text class="info-value">{{recipe.difficulty}}</text>
+    <!-- 菜谱基本信息 - 需求4.1: 显示菜谱的基本信息包括烹饪时间和制作难度 -->
+    <view class="recipe-header">
+      <view class="recipe-title-section">
+        <text class="recipe-name">{{recipe.name}}</text>
+        <text class="recipe-cuisine" wx:if="{{recipe.cuisine}}">{{recipe.cuisine}}</text>
+        <view class="recipe-source-info" wx:if="{{source}}">
+          <text class="source-badge">{{source === 'search' ? '文字搜索' : source === 'image' ? '图片识别' : source === 'cache' ? '缓存' : '生成'}}</text>
         </view>
       </view>
-
-      <view class="section">
-        <text class="section-title">食材清单</text>
-        <view class="ingredients-list">
-          <view class="ingredient-item" wx:for="{{recipe.ingredients}}" wx:key="index">
-            <text class="ingredient-name">{{item.name}}</text>
-            <text class="ingredient-amount">{{item.amount}}</text>
-          </view>
+      
+      <!-- 需求4.1: 显示基本信息包括烹饪时间和制作难度 -->
+      <view class="recipe-meta">
+        <view class="meta-item">
+          <text class="meta-icon">🕐</text>
+          <text class="meta-label">烹饪时间</text>
+          <text class="meta-value">{{recipe.cookingTime}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-icon">⭐</text>
+          <text class="meta-label">难度等级</text>
+          <text class="meta-value">{{recipe.difficulty}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-icon">👥</text>
+          <text class="meta-label">份量</text>
+          <text class="meta-value">{{recipe.servings}}</text>
         </view>
       </view>
-
-      <view class="section">
-        <text class="section-title">制作步骤</text>
-        <view class="steps-list">
-          <view class="step-item" wx:for="{{recipe.steps}}" wx:key="index">
-            <text class="step-number">{{index + 1}}.</text>
-            <text class="step-description">{{item}}</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="section" wx:if="{{recipe.tips}}">
-        <text class="section-title">小贴士</text>
-        <text class="tips-content">{{recipe.tips}}</text>
+      
+      <!-- 数据状态信息 -->
+      <view class="recipe-status" wx:if="{{lastUpdated}}">
+        <text class="status-text">更新时间: {{lastUpdated}}</text>
+        <text class="cache-status" wx:if="{{fromCache}}">来自缓存</text>
       </view>
     </view>
 
-    <view class="actions">
-      <button class="action-button" bindtap="searchAgain">重新搜索</button>
+    <!-- 食材清单 -->
+    <view class="section ingredients-section">
+      <view class="section-header">
+        <text class="section-icon">🥬</text>
+        <text class="section-title">食材清单</text>
+      </view>
+      <view class="ingredients-grid">
+        <view class="ingredient-card" wx:for="{{recipe.ingredients}}" wx:key="index">
+          <view class="ingredient-main">
+            <text class="ingredient-name">{{item.name}}</text>
+            <text class="ingredient-amount">{{item.amount}}</text>
+          </view>
+          <text class="ingredient-note" wx:if="{{item.note}}">{{item.note}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 制作步骤 -->
+    <view class="section steps-section">
+      <view class="section-header">
+        <text class="section-icon">👨‍🍳</text>
+        <text class="section-title">制作步骤</text>
+      </view>
+      <view class="steps-container">
+        <view class="step-card" wx:for="{{recipe.steps}}" wx:key="stepNumber">
+          <view class="step-header">
+            <view class="step-number">{{item.stepNumber}}</view>
+            <text class="step-title">步骤 {{item.stepNumber}}</text>
+          </view>
+          <text class="step-description">{{item.description}}</text>
+          <view class="step-tip" wx:if="{{item.tip}}">
+            <text class="tip-icon">💡</text>
+            <text class="tip-text">{{item.tip}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 烹饪贴士 -->
+    <view class="section tips-section" wx:if="{{recipe.tips && recipe.tips.length > 0}}">
+      <view class="section-header">
+        <text class="section-icon">📝</text>
+        <text class="section-title">烹饪贴士</text>
+      </view>
+      <view class="tips-container">
+        <view class="tip-item" wx:for="{{recipe.tips}}" wx:key="index">
+          <text class="tip-bullet">•</text>
+          <text class="tip-content">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 营养信息 -->
+    <view class="section nutrition-section" wx:if="{{recipe.nutrition}}">
+      <view class="section-header">
+        <text class="section-icon">🍎</text>
+        <text class="section-title">营养信息</text>
+      </view>
+      <view class="nutrition-content">
+        <view class="nutrition-main-grid">
+          <view class="nutrition-item primary">
+            <text class="nutrition-label">热量</text>
+            <text class="nutrition-value">{{recipe.nutrition.calories}}</text>
+          </view>
+          <view class="nutrition-item">
+            <text class="nutrition-label">蛋白质</text>
+            <text class="nutrition-value">{{recipe.nutrition.protein}}</text>
+          </view>
+          <view class="nutrition-item">
+            <text class="nutrition-label">脂肪</text>
+            <text class="nutrition-value">{{recipe.nutrition.fat}}</text>
+          </view>
+          <view class="nutrition-item">
+            <text class="nutrition-label">碳水</text>
+            <text class="nutrition-value">{{recipe.nutrition.carbs}}</text>
+          </view>
+        </view>
+        
+        <!-- 详细营养信息 -->
+        <view class="nutrition-detail" wx:if="{{recipe.nutrition.fiber}}">
+          <view class="nutrition-row">
+            <text class="nutrition-detail-label">膳食纤维</text>
+            <text class="nutrition-detail-value">{{recipe.nutrition.fiber}}</text>
+          </view>
+          <view class="nutrition-row">
+            <text class="nutrition-detail-label">钠含量</text>
+            <text class="nutrition-detail-value">{{recipe.nutrition.sodium}}</text>
+          </view>
+          <view class="nutrition-row" wx:if="{{recipe.nutrition.cholesterol}}">
+            <text class="nutrition-detail-label">胆固醇</text>
+            <text class="nutrition-detail-value">{{recipe.nutrition.cholesterol}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 健康功效 -->
+    <view class="section health-section" wx:if="{{recipe.healthBenefits && recipe.healthBenefits.length > 0}}">
+      <view class="section-header">
+        <text class="section-icon">💪</text>
+        <text class="section-title">健康功效</text>
+      </view>
+      <view class="health-benefits">
+        <view class="benefit-item" wx:for="{{recipe.healthBenefits}}" wx:key="index">
+          <text class="benefit-icon">✓</text>
+          <text class="benefit-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 饮食建议 -->
+    <view class="section dietary-section" wx:if="{{recipe.dietaryAdvice && recipe.dietaryAdvice.length > 0}}">
+      <view class="section-header">
+        <text class="section-icon">⚕️</text>
+        <text class="section-title">饮食建议</text>
+      </view>
+      <view class="dietary-advice">
+        <view class="advice-item" wx:for="{{recipe.dietaryAdvice}}" wx:key="index">
+          <text class="advice-icon">⚠</text>
+          <text class="advice-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 菜系特色 -->
+    <view class="section cuisine-section" wx:if="{{recipe.cuisineFeatures}}">
+      <view class="section-header">
+        <text class="section-icon">🏮</text>
+        <text class="section-title">{{recipe.cuisine}}特色</text>
+      </view>
+      <view class="cuisine-features">
+        <view class="feature-card">
+          <view class="feature-item">
+            <text class="feature-label">口味特点</text>
+            <text class="feature-value">{{recipe.cuisineFeatures.characteristics}}</text>
+          </view>
+          <view class="feature-item" wx:if="{{recipe.cuisineFeatures.spiceLevel}}">
+            <text class="feature-label">辣度等级</text>
+            <text class="feature-value">{{recipe.cuisineFeatures.spiceLevel}}</text>
+          </view>
+          <view class="feature-item" wx:if="{{recipe.cuisineFeatures.region}}">
+            <text class="feature-label">发源地区</text>
+            <text class="feature-value">{{recipe.cuisineFeatures.region}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 菜品描述 -->
+    <view class="section description-section" wx:if="{{recipe.description}}">
+      <view class="section-header">
+        <text class="section-icon">📖</text>
+        <text class="section-title">菜品介绍</text>
+      </view>
+      <view class="description-content">
+        <text class="description-text">{{recipe.description}}</text>
+      </view>
+    </view>
+
+    <!-- 底部操作按钮 -->
+    <view class="bottom-actions">
+      <button class="action-btn secondary" bindtap="searchAgain">
+        <text class="btn-icon">🔍</text>
+        <text class="btn-text">重新搜索</text>
+      </button>
+      <button class="action-btn primary" bindtap="goHome">
+        <text class="btn-icon">🏠</text>
+        <text class="btn-text">返回首页</text>
+      </button>
     </view>
   </view>
 </view>

@@ -9,6 +9,24 @@
     "navigationBarTitleText": "识食有方",
     "navigationBarTextStyle": "black"
   },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍照识别食物"
+    },
+    "scope.album": {
+      "desc": "用于选择相册图片识别食物"
+    }
+  },
+  "requiredBackgroundModes": ["audio"],
+  "networkTimeout": {
+    "request": 60000,
+    "uploadFile": 60000,
+    "downloadFile": 60000,
+    "connectSocket": 60000
+  },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "navigateToMiniProgramAppIdList": [],
+  "usingComponents": {},
+  "lazyCodeLoading": "requiredComponents"
 }

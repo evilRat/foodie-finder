@@ -11,10 +11,48 @@
         placeholder="输入食物名称搜索菜谱" 
         value="{{inputValue}}"
         bindinput="onInput"
+        bindfocus="onInputFocus"
+        bindblur="onInputBlur"
+        confirm-type="search"
+        bindconfirm="searchByInput"
       />
       <icon wx:if="{{inputValue.length > 0}}" class="clear-icon" type="clear" bindtap="clearInput" />
     </view>
-    <button class="search-button" bindtap="searchByInput">搜索</button>
+    
+    <!-- 搜索历史 -->
+    <view wx:if="{{showHistory}}" class="search-history">
+      <view class="history-header">
+        <text class="history-title">搜索历史</text>
+        <text class="clear-history" bindtap="clearHistory">清空</text>
+      </view>
+      <view class="history-list">
+        <text 
+          wx:for="{{searchHistory}}" 
+          wx:key="index"
+          class="history-item"
+          data-keyword="{{item}}"
+          bindtap="selectHistory"
+        >{{item}}</text>
+      </view>
+    </view>
+    
+    <button 
+      class="search-button {{inputValue.trim() ? 'active' : ''}}" 
+      bindtap="searchByInput"
+      disabled="{{!inputValue.trim()}}"
+    >搜索</button>
+  </view>
+
+  <!-- 快速搜索 -->
+  <view class="quick-search">
+    <text class="quick-search-title">热门搜索</text>
+    <view class="quick-search-tags">
+      <text class="quick-tag" data-keyword="红烧肉" bindtap="quickSearch">红烧肉</text>
+      <text class="quick-tag" data-keyword="宫保鸡丁" bindtap="quickSearch">宫保鸡丁</text>
+      <text class="quick-tag" data-keyword="麻婆豆腐" bindtap="quickSearch">麻婆豆腐</text>
+      <text class="quick-tag" data-keyword="糖醋里脊" bindtap="quickSearch">糖醋里脊</text>
+      <text class="quick-tag" data-keyword="鱼香肉丝" bindtap="quickSearch">鱼香肉丝</text>
+    </view>
   </view>
 
   <view class="divider">
@@ -23,20 +61,47 @@
 
   <view class="image-upload-section">
     <view wx:if="{{isProcessing}}" class="processing">
-      <loading />
-      <text>正在识别中...</text>
+      <view class="recognition-animation">
+        <view class="main-spinner {{processingStage}}"></view>
+        <view class="orbit-dots">
+          <view class="orbit-dot dot1 {{processingStage === 'uploading' ? 'active' : ''}}"></view>
+          <view class="orbit-dot dot2 {{processingStage === 'processing' ? 'active' : ''}}"></view>
+          <view class="orbit-dot dot3 {{processingStage === 'recognizing' ? 'active' : ''}}"></view>
+        </view>
+      </view>
+      <view class="processing-info">
+        <text class="processing-text">{{processingMessage}}</text>
+        <text class="processing-tip">{{processingTip}}</text>
+        <view class="processing-stages">
+          <view class="stage-dot {{processingProgress >= 25 ? 'active' : ''}}"></view>
+          <view class="stage-dot {{processingProgress >= 50 ? 'active' : ''}}"></view>
+          <view class="stage-dot {{processingProgress >= 75 ? 'active' : ''}}"></view>
+          <view class="stage-dot {{processingProgress >= 100 ? 'active' : ''}}"></view>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{processingProgress}}%"></view>
+        </view>
+        <text class="progress-text">{{processingProgress}}%</text>
+      </view>
     </view>
     
     <view wx:else class="upload-options">
-      <button class="upload-button" bindtap="takePhoto">
-        <icon type="camera" size="30" />
-        <text>拍照识别</text>
+      <button class="upload-button camera-button" bindtap="takePhoto" hover-class="button-hover">
+        <view class="button-icon">📷</view>
+        <text class="button-text">拍照识别</text>
+        <text class="button-desc">实时拍摄食物照片</text>
       </button>
       
-      <button class="upload-button" bindtap="chooseFromAlbum">
-        <icon type="pic" size="30" />
-        <text>相册选择</text>
+      <button class="upload-button album-button" bindtap="chooseFromAlbum" hover-class="button-hover">
+        <view class="button-icon">🖼️</view>
+        <text class="button-text">相册选择</text>
+        <text class="button-desc">从相册选择图片</text>
       </button>
+    </view>
+    
+    <!-- 显示选择的图片 -->
+    <view wx:if="{{imageSrc && !isProcessing}}" class="selected-image">
+      <image src="{{imageSrc}}" mode="aspectFit" class="preview-image" />
     </view>
   </view>
 
